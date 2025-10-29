@@ -35,13 +35,11 @@ export default function App() {
   // try swapping board numbers with another match in the SAME round that reduces
   // conflicts for BOTH matches' players. Repeat a few times per round.
   function rebalanceBoards(schedule) {
-    // deep-ish clone: we only mutate .board numbers
     const rounds = schedule.map(r => r.map(m => ({ ...m })))
     const lastBoard = {} // player -> board used in previous round
 
     for (let r = 0; r < rounds.length; r++) {
       const matches = rounds[r]
-      // compute conflict score for each match
       const conflictForMatch = (m) => {
         let c = 0
         if (lastBoard[m.A] === m.board) c++
@@ -49,30 +47,24 @@ export default function App() {
         return c
       }
 
-      // attempt a few improvement passes
       let improved = true
       let guard = 0
       while (improved && guard < 10) {
         improved = false
         guard++
-
-        // try pairwise swaps of board numbers
         for (let i = 0; i < matches.length; i++) {
           for (let j = i + 1; j < matches.length; j++) {
             const m1 = matches[i], m2 = matches[j]
             const before = conflictForMatch(m1) + conflictForMatch(m2)
 
-            // swap boards
             const b1 = m1.board, b2 = m2.board
             m1.board = b2
             m2.board = b1
             const after = conflictForMatch(m1) + conflictForMatch(m2)
 
             if (after < before) {
-              // keep swap; mark improvement
               improved = true
             } else {
-              // revert
               m1.board = b1
               m2.board = b2
             }
@@ -80,7 +72,6 @@ export default function App() {
         }
       }
 
-      // finalize this round: update lastBoard based on (possibly) improved matches
       for (const m of matches) {
         lastBoard[m.A] = m.board
         lastBoard[m.B] = m.board
@@ -121,7 +112,8 @@ export default function App() {
 
   // Assets (place in /public)
   const logoPath = '/scorecard-logo.png'
-  const IMG_MATCHBLANK = '/Square_Without_Text.png' // used for Match cells & Total (non-BYE)
+  const IMG_MATCHBLANK = '/Square_Without_Text.png'    // for Match cells & Total (non-BYE)
+  const IMG_POINTS20S = '/Square_With_Text.png'        // for the Points/20s column
 
   const tournamentTitle = 'Games on Tap — Crokinole Singles'
   const tournamentSub = 'Louisville, KY • Nov 1, 2025'
@@ -165,7 +157,8 @@ export default function App() {
 
   const headerCell = { border:'1px solid #e5e7eb', background:'#f3f4f6', padding:'6px 8px', textAlign:'center', fontWeight:700, fontSize:13, lineHeight:'16px', whiteSpace:'nowrap', height:'auto', verticalAlign:'middle' }
 
-  const W = { game:60, table:70, opponent:200, match:40, total:40, oppInit:40 }
+  // Column widths (Points column restored)
+  const W = { game:60, table:70, opponent:200, points:40, match:40, total:40, oppInit:40 }
 
   const TwoLineHeader = ({ top, bottom }) => (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', lineHeight:'14px' }}>
@@ -245,6 +238,10 @@ export default function App() {
                   <th style={{ ...headerCell, width: W.game }}>Game #</th>
                   <th style={{ ...headerCell, width: W.table }}>Table #</th>
                   <th style={{ ...headerCell, width: W.opponent }}>Opponent</th>
+
+                  {/* Points/20s column (header intentionally blank to match prior design) */}
+                  <th style={{ ...headerCell, width: W.points }}></th>
+
                   {['1','2','3','4'].map(num => (
                     <th key={num} style={{ ...headerCell, width: W.match, padding:'4px 6px' }}>
                       <TwoLineHeader top="Match" bottom={num} />
@@ -267,6 +264,10 @@ export default function App() {
                       <td style={isOff ? flexCellOffRow : flexCell}>{idx+1}</td>
                       <td style={isOff ? flexCellOffRow : flexCell}>{table}</td>
                       <td style={isOff ? flexCellLeftOffRow : flexCellLeft}>{opp}</td>
+
+                      {/* Points/20s image (or blacked out on OFF) */}
+                      <td style={isOff ? squareCellOffRow : squareWithImage(IMG_POINTS20S)}></td>
+
                       {[0,1,2,3].map(i => (
                         <td key={i} style={isOff ? squareCellOffRow : squareWithImage(IMG_MATCHBLANK)}></td>
                       ))}
@@ -313,7 +314,7 @@ export default function App() {
       <div className="no-print" style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:8, overflow:'hidden' }}>
         <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
           <thead>
-            <tr style={{ background:'#f3f4f6' }}>
+            <tr style={{ background: '#f3f4f6' }}>
               <th style={{ border:'1px solid #e5e7eb', padding:6 }}>Player</th>
               <th style={{ border:'1px solid #e5e7eb', padding:6 }}>Group</th>
               <th style={{ border:'1px solid #e5e7eb', padding:6 }}>Games Scheduled</th>
